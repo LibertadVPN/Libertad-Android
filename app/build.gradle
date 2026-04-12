@@ -1,0 +1,48 @@
+plugins {
+    id 'com.android.application'
+}
+
+def localProps = new Properties()
+def localFile = rootProject.file("local.properties")
+
+if (localFile.exists()) {
+    localProps.load(new FileInputStream(localFile))
+}
+
+def subUrl = localProps.getProperty("subUrl")
+
+android {
+    namespace 'org.libertad.vpn'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "org.libertad.vpn"
+        minSdk 21
+        targetSdk 34
+        versionCode 11
+        versionName "1.0"
+        setProperty("archivesBaseName", rootProject.name + "-" + versionName)
+        buildConfigField "String", "subUrl", "\"${subUrl}\""
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    buildFeatures {
+        buildConfig = true
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'com.google.android.material:material:1.13.0'
+    implementation 'com.squareup.okhttp3:okhttp:5.3.2'
+    implementation project(path: ':v2ray')
+}
