@@ -59,25 +59,25 @@ public class MainActivity extends AppCompatActivity {
         startAutoUpdate();
 
         connection.setOnClickListener(view -> {
+            V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
+
+            if (state != V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
+                V2rayController.stopV2ray(this);
+                return;
+            }
+
             if (selectedConfig == null) {
                 Toast.makeText(this, "Выберите сервер", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
-
-            if (state == V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
-                try {
-                    String config = convertToXrayConfig(selectedConfig);
-                    V2rayController.startV2ray(this, "Libertad VPN", config, null);
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                    Toast.makeText(this, "Ошибка конфига", Toast.LENGTH_SHORT).show();
-                }
+            try {
+                String config = convertToXrayConfig(selectedConfig);
+                V2rayController.startV2ray(this, "Libertad VPN", config, null);
             }
-            else {
-                V2rayController.stopV2ray(this);
+            catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Ошибка конфига", Toast.LENGTH_SHORT).show();
             }
         });
 
