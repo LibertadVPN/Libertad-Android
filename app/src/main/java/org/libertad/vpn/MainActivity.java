@@ -27,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView connection_time, txtSelected;
     private BroadcastReceiver v2rayBroadCastReceiver;
     private String selectedConfig;
+    private int selectedPosition = -1;
 
     private ListView listView;
     private List<String> rawConfigs = new ArrayList<>();
@@ -151,9 +152,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
-            this,
-            android.R.layout.simple_list_item_1,
-            displayNames
+                this,
+                R.layout.list_item,
+                R.id.txt_server,
+                displayNames
         );
 
         listView.setAdapter(adapter);
@@ -334,21 +336,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateUI(V2rayConstants.CONNECTION_STATES state) {
-        switch (state) {
-            case CONNECTED:
-                connection.setText("Включено");
-                connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#22C55E")));
-                break;
-            case DISCONNECTED:
-                connection.setText("Выключено");
-                connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#EF4444")));
-                connection_time.setText("00:00:00");
-                break;
-            case CONNECTING:
-                connection.setText("...");
-                connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#F59E0B")));
-                break;
-        }
+       switch (state) {
+           case CONNECTED:
+               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#22C55E")));
+               break;
+           case DISCONNECTED:
+               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#EF4444")));
+               connection_time.setText("00:00:00");
+               break;
+           case CONNECTING:
+               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#3B82F6")));
+               break;
+       }
     }
 
     @Override
