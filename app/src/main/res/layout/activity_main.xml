@@ -11,23 +11,19 @@
         android:id="@+id/txt_selected"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="110dp"
         android:padding="8dp"
         android:text="Выберите сервер"
+        android:textColor="@color/black"
         android:textStyle="bold"
         android:textSize="18sp" />
-
-    <ListView
-        android:id="@+id/list_servers"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="8dp" />
 
     <TextView
         android:id="@+id/connection_duration"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="00:00:00"
+        android:textColor="@color/black"
         android:textSize="32sp"
         android:textStyle="bold"
         android:gravity="center"
@@ -35,15 +31,30 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_connection"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="..."
+        android:layout_width="120dp"
+        android:layout_height="100dp"
+
+        android:layout_gravity="center"
+
         android:textAllCaps="false"
         android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        app:backgroundTint="#3B82F6"
-        app:cornerRadius="18dp"
-        app:icon="@android:drawable/ic_lock_lock"
-        app:iconPadding="10dp"
-        app:iconTint="#FFFFFF" />
+        android:textSize="18sp"
+
+        app:icon="@android:drawable/ic_lock_power_off"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="36dp"
+        android:insetLeft="0dp"
+        android:insetRight="0dp"
+        app:backgroundTint="@color/blue"
+        app:cornerRadius="50dp"/>
+
+    <ListView
+        android:id="@+id/list_servers"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="8dp"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="8dp"
+        android:textColor="@color/black" />
 </LinearLayout>

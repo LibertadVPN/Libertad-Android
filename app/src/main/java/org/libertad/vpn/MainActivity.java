@@ -27,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView connection_time, txtSelected;
     private BroadcastReceiver v2rayBroadCastReceiver;
     private String selectedConfig;
+    private int selectedPosition = -1;
 
     private ListView listView;
     private List<String> rawConfigs = new ArrayList<>();
@@ -59,25 +60,25 @@ public class MainActivity extends AppCompatActivity {
         startAutoUpdate();
 
         connection.setOnClickListener(view -> {
+            V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
+
+            if (state != V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
+                V2rayController.stopV2ray(this);
+                return;
+            }
+
             if (selectedConfig == null) {
                 Toast.makeText(this, "Выберите сервер", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
-
-            if (state == V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
-                try {
-                    String config = convertToXrayConfig(selectedConfig);
-                    V2rayController.startV2ray(this, "Libertad VPN", config, null);
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                    Toast.makeText(this, "Ошибка конфига", Toast.LENGTH_SHORT).show();
-                }
+            try {
+                String config = convertToXrayConfig(selectedConfig);
+                V2rayController.startV2ray(this, "Libertad VPN", config, null);
             }
-            else {
-                V2rayController.stopV2ray(this);
+            catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Ошибка конфига", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -151,9 +152,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
-            this,
-            android.R.layout.simple_list_item_1,
-            displayNames
+                this,
+                R.layout.list_item,
+                R.id.txt_server,
+                displayNames
         );
 
         listView.setAdapter(adapter);
@@ -234,15 +236,22 @@ public class MainActivity extends AppCompatActivity {
         String address = hp[0];
         int port = Integer.parseInt(hp[1]);
 
+        // Defaults
         String network = "tcp";
         String security = "none";
+
         String path = "/";
         String host = "";
 
+        // TLS
         String sni = "";
+
+        // Reality
         String fp = "chrome";
         String pbk = "";
         String sid = "";
+        String flow = "";
+        String spx = "/";
 
         if (hostAndParams.length > 1) {
             String params = hostAndParams[1];
@@ -255,74 +264,119 @@ public class MainActivity extends AppCompatActivity {
                 String value = java.net.URLDecoder.decode(kv[1], "UTF-8");
 
                 switch (key) {
-                    // WS
+                    // Default
                     case "type":
                         network = value;
                         break;
+
                     case "security":
                         security = value;
                         break;
+
                     case "path":
                         path = value;
                         break;
+
                     case "host":
                         host = value;
                         break;
 
-                    // Reality
+                    // TLS / Reality SNI
                     case "sni":
                         sni = value;
                         break;
+
+                    // Reality params
                     case "fp":
                         fp = value;
                         break;
+
                     case "pbk":
                         pbk = value;
                         break;
+
                     case "sid":
                         sid = value;
+                        break;
+
+                    case "flow":
+                        flow = value;
+                        break;
+
+                    case "spx":
+                        spx = value;
                         break;
                 }
             }
         }
 
+        // Validation
+
+        if ("reality".equals(security)) {
+            if (pbk.isEmpty() || sid.isEmpty() || sni.isEmpty()) {
+                throw new Exception("Invalid Reality config: missing pbk/sid/sni");
+            }
+        }
+
+        // JSON Build
+
         StringBuilder json = new StringBuilder();
 
         json.append("{\n")
-            .append("  \"inbounds\": [{\"port\":10808,\"protocol\":\"socks\",\"settings\":{\"auth\":\"noauth\",\"udp\":true}}],\n")
+            .append("  \"inbounds\": [{")
+            .append("\"port\":10808,")
+            .append("\"protocol\":\"socks\",")
+            .append("\"settings\":{\"auth\":\"noauth\",\"udp\":true}")
+            .append("}],\n")
+
             .append("  \"outbounds\": [{\n")
             .append("    \"protocol\":\"vless\",\n")
-            .append("    \"settings\":{\n")
-            .append("      \"vnext\":[{\n")
-            .append("        \"address\":\"").append(address).append("\",\n")
-            .append("        \"port\":").append(port).append(",\n")
-            .append("        \"users\":[{\"id\":\"").append(uuid).append("\",\"encryption\":\"none\"}]\n")
+
+            .append("    \"settings\": {\n")
+            .append("      \"vnext\": [{\n")
+            .append("        \"address\": \"").append(address).append("\",\n")
+            .append("        \"port\": ").append(port).append(",\n")
+            .append("        \"users\": [{\n")
+            .append("          \"id\": \"").append(uuid).append("\",\n")
+            .append("          \"encryption\": \"none\"");
+
+        if (!flow.isEmpty()) {
+            json.append(",\n          \"flow\": \"").append(flow).append("\"");
+        }
+
+        json.append("\n        }]\n")
             .append("      }]\n")
             .append("    },\n")
-            .append("    \"streamSettings\":{\n")
-            .append("      \"network\":\"").append(network).append("\",\n")
-            .append("      \"security\":\"").append(security).append("\"");
+
+            .append("    \"streamSettings\": {\n")
+            .append("      \"network\": \"").append(network).append("\",\n")
+            .append("      \"security\": \"").append(security).append("\"");
 
         // TLS
-        if (security.equals("tls")) {
-            json.append(",\n      \"tlsSettings\": {\"serverName\": \"").append(host).append("\"}");
+        if ("tls".equals(security)) {
+            json.append(",\n      \"tlsSettings\": {\n")
+                .append("        \"serverName\": \"").append(host).append("\"\n")
+                .append("      }");
         }
 
         // Reality
-        if (security.equals("reality")) {
+        if ("reality".equals(security)) {
             json.append(",\n      \"realitySettings\": {\n")
                 .append("        \"serverName\": \"").append(sni).append("\",\n")
-                .append("        \"fingerprint\": \"").append(fp).append("\",\n")
                 .append("        \"publicKey\": \"").append(pbk).append("\",\n")
-                .append("        \"shortId\": \"").append(sid).append("\"\n")
+                .append("        \"shortId\": \"").append(sid).append("\",\n")
+                .append("        \"fingerprint\": \"").append(fp).append("\",\n")
+                .append("        \"spiderX\": \"").append(spx).append("\"\n")
                 .append("      }");
         }
 
         // WS
-        if (network.equals("ws")) {
+        if ("ws".equals(network)) {
             json.append(",\n      \"wsSettings\": {\n")
                 .append("        \"path\": \"").append(path).append("\",\n")
-                .append("        \"headers\": {\"Host\": \"").append(host).append("\"}\n")
+                .append("        \"headers\": {\n")
+                .append("          \"Host\": \"").append(host).append("\"\n")
+                .append("        }\n")
                 .append("      }");
         }
 
@@ -334,21 +388,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateUI(V2rayConstants.CONNECTION_STATES state) {
-        switch (state) {
-            case CONNECTED:
-                connection.setText("Включено");
-                connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#22C55E")));
-                break;
-            case DISCONNECTED:
-                connection.setText("Выключено");
-                connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#EF4444")));
-                connection_time.setText("00:00:00");
-                break;
-            case CONNECTING:
-                connection.setText("...");
-                connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#F59E0B")));
-                break;
-        }
+       switch (state) {
+           case CONNECTED:
+               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#22C55E")));
+               break;
+           case DISCONNECTED:
+               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#EF4444")));
+               connection_time.setText("00:00:00");
+               break;
+           case CONNECTING:
+               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#3B82F6")));
+               break;
+       }
     }
 
     @Override
