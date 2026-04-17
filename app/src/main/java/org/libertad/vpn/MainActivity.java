@@ -12,7 +12,6 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.*;
 import android.widget.*;
-import android.view.View;
 
 import org.libertad.lib.v2ray.V2rayController;
 import org.libertad.lib.v2ray.utils.V2rayConstants;
@@ -178,7 +177,6 @@ public class MainActivity extends AppCompatActivity {
                 if (state != V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
                     V2rayController.stopV2ray(this);
 
-                    // небольшая задержка, чтобы корректно перезапустить
                     new Handler(Looper.getMainLooper()).postDelayed(() -> {
                         V2rayController.startV2ray(this, "Libertad VPN", config, null);
                     }, 500);
