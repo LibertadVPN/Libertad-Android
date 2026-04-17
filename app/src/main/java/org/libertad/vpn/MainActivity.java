@@ -12,6 +12,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.*;
 import android.widget.*;
+import android.view.View;
 
 import org.libertad.lib.v2ray.V2rayController;
 import org.libertad.lib.v2ray.utils.V2rayConstants;
@@ -27,7 +28,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView connection_time, txtSelected;
     private BroadcastReceiver v2rayBroadCastReceiver;
     private String selectedConfig;
-    private int selectedPosition = -1;
 
     private ListView listView;
     private List<String> rawConfigs = new ArrayList<>();
@@ -56,8 +56,8 @@ public class MainActivity extends AppCompatActivity {
         listView = findViewById(R.id.list_servers);
 
         loadConfigsToUI();
-
         startAutoUpdate();
+        updateUI(V2rayController.getConnectionState());
 
         connection.setOnClickListener(view -> {
             V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
@@ -81,8 +81,6 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Ошибка конфига", Toast.LENGTH_SHORT).show();
             }
         });
-
-        updateUI(V2rayController.getConnectionState());
 
         v2rayBroadCastReceiver = new BroadcastReceiver() {
             @Override
@@ -162,8 +160,50 @@ public class MainActivity extends AppCompatActivity {
 
         listView.setOnItemClickListener((parent, view, position, id) -> {
             selectedConfig = rawConfigs.get(position);
+
             txtSelected.setText("Выбран: " + displayNames.get(position));
+
+            getSharedPreferences("vpn", MODE_PRIVATE)
+                    .edit()
+                    .putString("selected_config", selectedConfig)
+                    .apply();
+
+            adapter.notifyDataSetChanged();
+
+            V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
+
+            try {
+                String config = convertToXrayConfig(selectedConfig);
+
+                if (state != V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
+                    V2rayController.stopV2ray(this);
+
+                    // небольшая задержка, чтобы корректно перезапустить
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                        V2rayController.startV2ray(this, "Libertad VPN", config, null);
+                    }, 500);
+                } else {
+                    V2rayController.startV2ray(this, "Libertad VPN", config, null);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Ошибка конфига", Toast.LENGTH_SHORT).show();
+            }
         });
+
+        String savedConfig = getSharedPreferences("vpn", MODE_PRIVATE)
+                .getString("selected_config", null);
+
+        selectedConfig = savedConfig;
+
+        if (selectedConfig != null) {
+            int index = rawConfigs.indexOf(selectedConfig);
+
+            if (index != -1) {
+                txtSelected.setText("Выбран: " + displayNames.get(index));
+            }
+        }
     }
 
     private String parseName(String link) {

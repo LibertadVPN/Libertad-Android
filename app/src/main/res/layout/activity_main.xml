@@ -56,5 +56,7 @@
         android:layout_marginTop="8dp"
         android:divider="@android:color/transparent"
         android:dividerHeight="8dp"
-        android:textColor="@color/black" />
+        android:textColor="@color/black"
+        android:choiceMode="singleChoice"
+        android:listSelector="@android:color/transparent"/>
 </LinearLayout>
