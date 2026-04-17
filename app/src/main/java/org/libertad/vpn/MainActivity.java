@@ -45,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        ThemeManager.applyTheme(this);
+
         setContentView(R.layout.activity_main);
 
         V2rayController.init(this, R.drawable.ic_launcher, "Libertad VPN");
@@ -163,9 +165,9 @@ public class MainActivity extends AppCompatActivity {
             txtSelected.setText("Выбран: " + displayNames.get(position));
 
             getSharedPreferences("vpn", MODE_PRIVATE)
-                    .edit()
-                    .putString("selected_config", selectedConfig)
-                    .apply();
+                .edit()
+                .putString("selected_config", selectedConfig)
+                .apply();
 
             adapter.notifyDataSetChanged();
 
@@ -180,18 +182,20 @@ public class MainActivity extends AppCompatActivity {
                     new Handler(Looper.getMainLooper()).postDelayed(() -> {
                         V2rayController.startV2ray(this, "Libertad VPN", config, null);
                     }, 500);
-                } else {
+                }
+                else {
                     V2rayController.startV2ray(this, "Libertad VPN", config, null);
                 }
 
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Ошибка конфига", Toast.LENGTH_SHORT).show();
             }
         });
 
         String savedConfig = getSharedPreferences("vpn", MODE_PRIVATE)
-                .getString("selected_config", null);
+            .getString("selected_config", null);
 
         selectedConfig = savedConfig;
 
@@ -210,7 +214,8 @@ public class MainActivity extends AppCompatActivity {
                 String name = link.split("#")[1];
                 return URLDecoder.decode(name, "UTF-8");
             }
-        } catch (Exception ignored) {}
+        }
+        catch (Exception ignored) {}
         return "Server";
     }
 

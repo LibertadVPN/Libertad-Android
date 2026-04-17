@@ -33,11 +33,10 @@
         android:id="@+id/btn_connection"
         android:layout_width="120dp"
         android:layout_height="100dp"
-
         android:layout_gravity="center"
 
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/white"
         android:textSize="18sp"
 
         app:icon="@android:drawable/ic_lock_power_off"
