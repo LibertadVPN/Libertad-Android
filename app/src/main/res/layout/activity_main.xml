@@ -5,36 +5,43 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="?attr/colorSurface">
+
+    <ImageButton
+        android:id="@+id/btn_theme"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="end"
+        android:background="@android:color/transparent"
+        android:src="@drawable/ic_sun"/>
 
     <TextView
         android:id="@+id/connection_duration"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="00:00:00"
-        android:textColor="@color/black"
         android:textSize="32sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:layout_marginTop="150dp"/>
+        android:layout_marginTop="150dp"
+        android:textColor="?attr/colorOnSurface"/>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_connection"
         android:layout_width="120dp"
         android:layout_height="100dp"
         android:layout_gravity="center"
-
         android:textAllCaps="false"
-        android:textColor="@color/white"
+        android:textColor="?attr/colorOnPrimary"
         android:textSize="18sp"
 
         app:icon="@android:drawable/ic_lock_power_off"
         app:iconGravity="textStart"
         app:iconPadding="0dp"
         app:iconSize="36dp"
-        android:insetLeft="0dp"
-        android:insetRight="0dp"
-        app:backgroundTint="@color/blue"
+
+        app:backgroundTint="?attr/colorPrimary"
         app:cornerRadius="50dp"/>
 
     <ListView
@@ -44,7 +51,7 @@
         android:layout_marginTop="8dp"
         android:divider="@android:color/transparent"
         android:dividerHeight="8dp"
-        android:textColor="@color/black"
         android:choiceMode="singleChoice"
-        android:listSelector="@android:color/transparent"/>
+        android:listSelector="@android:color/transparent"
+        android:background="?attr/colorSurface"/>
 </LinearLayout>

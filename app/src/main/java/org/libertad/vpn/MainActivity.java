@@ -26,9 +26,10 @@ import okhttp3.*;
 public class MainActivity extends AppCompatActivity {
     private Button connection;
     private TextView connection_time;
+    private ImageButton btnTheme;
     private BroadcastReceiver v2rayBroadCastReceiver;
     private String selectedConfig;
-
+    
     private ListView listView;
     private List<String> rawConfigs = new ArrayList<>();
     private List<String> displayNames = new ArrayList<>();
@@ -55,6 +56,15 @@ public class MainActivity extends AppCompatActivity {
         connection = findViewById(R.id.btn_connection);
         connection_time = findViewById(R.id.connection_duration);
         listView = findViewById(R.id.list_servers);
+        btnTheme = findViewById(R.id.btn_theme);
+
+        updateThemeIcon();
+
+        btnTheme.setOnClickListener(v -> {
+            ThemeManager.toggleTheme(this);
+            updateThemeIcon();
+            recreate();
+        });
 
         loadConfigsToUI();
         startAutoUpdate();
@@ -131,6 +141,14 @@ public class MainActivity extends AppCompatActivity {
     private boolean isAuthorized() {
         return getSharedPreferences("vpn", MODE_PRIVATE)
             .getString("token", null) != null;
+    }
+
+    private void updateThemeIcon() {
+        boolean dark = ThemeManager.isDark(this);
+
+        btnTheme.setImageResource(
+                dark ? R.drawable.ic_moon : R.drawable.ic_sun
+        );
     }
 
     private void loadConfigsToUI() {
