@@ -11,6 +11,7 @@ import android.content.*;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.*;
+import android.view.*;
 import android.widget.*;
 
 import org.libertad.lib.v2ray.V2rayController;
@@ -24,7 +25,7 @@ import okhttp3.*;
 
 public class MainActivity extends AppCompatActivity {
     private Button connection;
-    private TextView connection_time, txtSelected;
+    private TextView connection_time;
     private BroadcastReceiver v2rayBroadCastReceiver;
     private String selectedConfig;
 
@@ -53,7 +54,6 @@ public class MainActivity extends AppCompatActivity {
 
         connection = findViewById(R.id.btn_connection);
         connection_time = findViewById(R.id.connection_duration);
-        txtSelected = findViewById(R.id.txt_selected);
         listView = findViewById(R.id.list_servers);
 
         loadConfigsToUI();
@@ -150,19 +150,31 @@ public class MainActivity extends AppCompatActivity {
             displayNames.add(parseName(line));
         }
 
+        String savedConfig = getSharedPreferences("vpn", MODE_PRIVATE)
+            .getString("selected_config", null);
+
+        selectedConfig = savedConfig;
+
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this,
-                R.layout.list_item,
-                R.id.txt_server,
-                displayNames
+            this,
+            R.layout.list_item,
+            R.id.txt_server,
+            displayNames
         );
 
         listView.setAdapter(adapter);
 
+        if (savedConfig != null) {
+            int index = rawConfigs.indexOf(savedConfig);
+
+            if (index != -1) {
+                listView.setItemChecked(index, true);
+                listView.setSelection(index);
+            }
+        }
+
         listView.setOnItemClickListener((parent, view, position, id) -> {
             selectedConfig = rawConfigs.get(position);
-
-            txtSelected.setText("Выбран: " + displayNames.get(position));
 
             getSharedPreferences("vpn", MODE_PRIVATE)
                 .edit()
@@ -176,36 +188,19 @@ public class MainActivity extends AppCompatActivity {
             try {
                 String config = convertToXrayConfig(selectedConfig);
 
-                if (state != V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
+                if (state == V2rayConstants.CONNECTION_STATES.CONNECTED) {
                     V2rayController.stopV2ray(this);
 
                     new Handler(Looper.getMainLooper()).postDelayed(() -> {
                         V2rayController.startV2ray(this, "Libertad VPN", config, null);
-                    }, 500);
+                    }, 1000);
                 }
-                else {
-                    V2rayController.startV2ray(this, "Libertad VPN", config, null);
-                }
-
             }
             catch (Exception e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Ошибка конфига", Toast.LENGTH_SHORT).show();
             }
         });
-
-        String savedConfig = getSharedPreferences("vpn", MODE_PRIVATE)
-            .getString("selected_config", null);
-
-        selectedConfig = savedConfig;
-
-        if (selectedConfig != null) {
-            int index = rawConfigs.indexOf(selectedConfig);
-
-            if (index != -1) {
-                txtSelected.setText("Выбран: " + displayNames.get(index));
-            }
-        }
     }
 
     private String parseName(String link) {

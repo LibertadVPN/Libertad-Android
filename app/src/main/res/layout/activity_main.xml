@@ -8,17 +8,6 @@
     android:padding="16dp">
 
     <TextView
-        android:id="@+id/txt_selected"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="110dp"
-        android:padding="8dp"
-        android:text="Выберите сервер"
-        android:textColor="@color/black"
-        android:textStyle="bold"
-        android:textSize="18sp" />
-
-    <TextView
         android:id="@+id/connection_duration"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -27,7 +16,7 @@
         android:textSize="32sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:layout_marginTop="16dp"/>
+        android:layout_marginTop="150dp"/>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_connection"
