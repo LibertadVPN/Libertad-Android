@@ -1,4 +1,4 @@
-package org.libertad.vpn;
+package org.libertad.vpn.theme;
 
 import androidx.appcompat.app.AppCompatDelegate;
 

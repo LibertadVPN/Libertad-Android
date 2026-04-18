@@ -11,11 +11,13 @@ import android.content.*;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.*;
-import android.view.*;
 import android.widget.*;
 
 import org.libertad.lib.v2ray.V2rayController;
 import org.libertad.lib.v2ray.utils.V2rayConstants;
+import org.libertad.vpn.manager.ConfigParser;
+import org.libertad.vpn.manager.VpnManager;
+import org.libertad.vpn.theme.ThemeManager;
 
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -29,14 +31,14 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton btnTheme;
     private BroadcastReceiver v2rayBroadCastReceiver;
     private String selectedConfig;
-    
+
     private ListView listView;
     private List<String> rawConfigs = new ArrayList<>();
     private List<String> displayNames = new ArrayList<>();
 
     private Handler handler = new Handler(Looper.getMainLooper());
 
-    @SuppressLint({"SetTextI18n", "UnspecifiedRegisterReceiverFlag"})
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,32 +68,13 @@ public class MainActivity extends AppCompatActivity {
             recreate();
         });
 
+        connection.setOnClickListener(v -> {
+            VpnManager.toggle(this);
+        });
+
         loadConfigsToUI();
         startAutoUpdate();
         updateUI(V2rayController.getConnectionState());
-
-        connection.setOnClickListener(view -> {
-            V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
-
-            if (state != V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
-                V2rayController.stopV2ray(this);
-                return;
-            }
-
-            if (selectedConfig == null) {
-                Toast.makeText(this, "Выберите сервер", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            try {
-                String config = convertToXrayConfig(selectedConfig);
-                V2rayController.startV2ray(this, "Libertad VPN", config, null);
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-                Toast.makeText(this, "Ошибка конфига", Toast.LENGTH_SHORT).show();
-            }
-        });
 
         v2rayBroadCastReceiver = new BroadcastReceiver() {
             @Override
@@ -123,34 +106,39 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
+        IntentFilter filter = new IntentFilter(V2RAY_SERVICE_STATICS_BROADCAST_INTENT);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(
                 v2rayBroadCastReceiver,
-                new IntentFilter(V2RAY_SERVICE_STATICS_BROADCAST_INTENT),
+                filter,
                 Context.RECEIVER_NOT_EXPORTED
             );
         }
         else {
             registerReceiver(
                 v2rayBroadCastReceiver,
-                new IntentFilter(V2RAY_SERVICE_STATICS_BROADCAST_INTENT)
+                filter
             );
         }
     }
 
+    // Auth
     private boolean isAuthorized() {
         return getSharedPreferences("vpn", MODE_PRIVATE)
             .getString("token", null) != null;
     }
 
+    // Theme
     private void updateThemeIcon() {
         boolean dark = ThemeManager.isDark(this);
 
         btnTheme.setImageResource(
-                dark ? R.drawable.ic_moon : R.drawable.ic_sun
+            dark ? R.drawable.ic_moon : R.drawable.ic_sun
         );
     }
 
+    // Configs
     private void loadConfigsToUI() {
         rawConfigs.clear();
         displayNames.clear();
@@ -201,18 +189,8 @@ public class MainActivity extends AppCompatActivity {
 
             adapter.notifyDataSetChanged();
 
-            V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
-
             try {
-                String config = convertToXrayConfig(selectedConfig);
-
-                if (state == V2rayConstants.CONNECTION_STATES.CONNECTED) {
-                    V2rayController.stopV2ray(this);
-
-                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                        V2rayController.startV2ray(this, "Libertad VPN", config, null);
-                    }, 1000);
-                }
+                VpnManager.reconnect(this);
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -224,14 +202,15 @@ public class MainActivity extends AppCompatActivity {
     private String parseName(String link) {
         try {
             if (link.contains("#")) {
-                String name = link.split("#")[1];
-                return URLDecoder.decode(name, "UTF-8");
+                return URLDecoder.decode(link.split("#")[1], "UTF-8");
             }
         }
         catch (Exception ignored) {}
+
         return "Server";
     }
 
+    // Update
     private void startAutoUpdate() {
         handler.postDelayed(new Runnable() {
             @Override
@@ -273,189 +252,32 @@ public class MainActivity extends AppCompatActivity {
 
                     runOnUiThread(() -> loadConfigsToUI());
 
-                } catch (Exception ignored) {}
+                }
+                catch (Exception ignored) {}
             }
         });
     }
 
-    private String convertToXrayConfig(String link) throws Exception {
-        String cleanLink = link.split("#")[0];
-        String raw = cleanLink.replace("vless://", "");
-
-        String[] parts = raw.split("@");
-        String uuid = parts[0];
-
-        String[] hostAndParams = parts[1].split("\\?");
-        String hostPort = hostAndParams[0];
-
-        String[] hp = hostPort.split(":");
-        String address = hp[0];
-        int port = Integer.parseInt(hp[1]);
-
-        // Defaults
-        String network = "tcp";
-        String security = "none";
-
-        String path = "/";
-        String host = "";
-
-        // TLS
-        String sni = "";
-
-        // Reality
-        String fp = "chrome";
-        String pbk = "";
-        String sid = "";
-        String flow = "";
-        String spx = "/";
-
-        if (hostAndParams.length > 1) {
-            String params = hostAndParams[1];
-
-            for (String param : params.split("&")) {
-                String[] kv = param.split("=");
-                if (kv.length != 2) continue;
-
-                String key = kv[0];
-                String value = java.net.URLDecoder.decode(kv[1], "UTF-8");
-
-                switch (key) {
-                    // Default
-                    case "type":
-                        network = value;
-                        break;
-
-                    case "security":
-                        security = value;
-                        break;
-
-                    case "path":
-                        path = value;
-                        break;
-
-                    case "host":
-                        host = value;
-                        break;
-
-                    // TLS / Reality SNI
-                    case "sni":
-                        sni = value;
-                        break;
-
-                    // Reality params
-                    case "fp":
-                        fp = value;
-                        break;
-
-                    case "pbk":
-                        pbk = value;
-                        break;
-
-                    case "sid":
-                        sid = value;
-                        break;
-
-                    case "flow":
-                        flow = value;
-                        break;
-
-                    case "spx":
-                        spx = value;
-                        break;
-                }
-            }
-        }
-
-        // Validation
-
-        if ("reality".equals(security)) {
-            if (pbk.isEmpty() || sid.isEmpty() || sni.isEmpty()) {
-                throw new Exception("Invalid Reality config: missing pbk/sid/sni");
-            }
-        }
-
-        // JSON Build
-
-        StringBuilder json = new StringBuilder();
-
-        json.append("{\n")
-            .append("  \"inbounds\": [{")
-            .append("\"port\":10808,")
-            .append("\"protocol\":\"socks\",")
-            .append("\"settings\":{\"auth\":\"noauth\",\"udp\":true}")
-            .append("}],\n")
-
-            .append("  \"outbounds\": [{\n")
-            .append("    \"protocol\":\"vless\",\n")
-
-            .append("    \"settings\": {\n")
-            .append("      \"vnext\": [{\n")
-            .append("        \"address\": \"").append(address).append("\",\n")
-            .append("        \"port\": ").append(port).append(",\n")
-            .append("        \"users\": [{\n")
-            .append("          \"id\": \"").append(uuid).append("\",\n")
-            .append("          \"encryption\": \"none\"");
-
-        if (!flow.isEmpty()) {
-            json.append(",\n          \"flow\": \"").append(flow).append("\"");
-        }
-
-        json.append("\n        }]\n")
-            .append("      }]\n")
-            .append("    },\n")
-
-            .append("    \"streamSettings\": {\n")
-            .append("      \"network\": \"").append(network).append("\",\n")
-            .append("      \"security\": \"").append(security).append("\"");
-
-        // TLS
-        if ("tls".equals(security)) {
-            json.append(",\n      \"tlsSettings\": {\n")
-                .append("        \"serverName\": \"").append(host).append("\"\n")
-                .append("      }");
-        }
-
-        // Reality
-        if ("reality".equals(security)) {
-            json.append(",\n      \"realitySettings\": {\n")
-                .append("        \"serverName\": \"").append(sni).append("\",\n")
-                .append("        \"publicKey\": \"").append(pbk).append("\",\n")
-                .append("        \"shortId\": \"").append(sid).append("\",\n")
-                .append("        \"fingerprint\": \"").append(fp).append("\",\n")
-                .append("        \"spiderX\": \"").append(spx).append("\"\n")
-                .append("      }");
-        }
-
-        // WS
-        if ("ws".equals(network)) {
-            json.append(",\n      \"wsSettings\": {\n")
-                .append("        \"path\": \"").append(path).append("\",\n")
-                .append("        \"headers\": {\n")
-                .append("          \"Host\": \"").append(host).append("\"\n")
-                .append("        }\n")
-                .append("      }");
-        }
-
-        json.append("\n    }\n")
-            .append("  }]\n")
-            .append("}");
-
-        return json.toString();
-    }
-
+    // UI
     private void updateUI(V2rayConstants.CONNECTION_STATES state) {
-       switch (state) {
-           case CONNECTED:
-               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#22C55E")));
-               break;
-           case DISCONNECTED:
-               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#EF4444")));
-               connection_time.setText("00:00:00");
-               break;
-           case CONNECTING:
-               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#3B82F6")));
-               break;
-       }
+        switch (state) {
+            case CONNECTED:
+                connection.setBackgroundTintList(
+                    ColorStateList.valueOf(Color.parseColor("#22C55E"))
+                );
+                break;
+            case DISCONNECTED:
+                connection.setBackgroundTintList(
+                    ColorStateList.valueOf(Color.parseColor("#EF4444"))
+                );
+                connection_time.setText("00:00:00");
+                break;
+            case CONNECTING:
+                connection.setBackgroundTintList(
+                    ColorStateList.valueOf(Color.parseColor("#3B82F6"))
+                );
+                break;
+        }
     }
 
     @Override
