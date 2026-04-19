@@ -11,9 +11,12 @@ import android.content.*;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.*;
+import android.util.TypedValue;
+import android.view.View;
 import android.widget.*;
 
 import org.libertad.lib.v2ray.V2rayController;
+import org.libertad.lib.v2ray.utils.V2rayConfigs;
 import org.libertad.lib.v2ray.utils.V2rayConstants;
 import org.libertad.vpn.manager.VpnManager;
 import org.libertad.vpn.manager.VibrationManager;
@@ -64,6 +67,54 @@ public class MainActivity extends AppCompatActivity {
         connection_time = findViewById(R.id.connection_duration);
         listView = findViewById(R.id.list_servers);
         btnTheme = findViewById(R.id.btn_theme);
+
+        TextView proxy = findViewById(R.id.proxy);
+        TextView tunnel = findViewById(R.id.tunnel);
+
+        View indicator = findViewById(R.id.indicator);
+        View container = (View) indicator.getParent();
+
+        TypedValue tv = new TypedValue();
+
+        getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnSurface, tv, true);
+        int activeColor = tv.data;
+
+        getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnPrimary, tv, true);
+        int inactiveColor = tv.data;
+
+        container.post(() -> {
+            int halfWidth = container.getWidth() / 2 - 10;
+
+            proxy.setOnClickListener(v -> {
+                proxy.setTextColor(activeColor);
+                tunnel.setTextColor(inactiveColor);
+                VibrationManager.vibrate(this, 60);
+
+                VpnManager.disconnect(this);
+                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.PROXY_MODE;
+                VpnManager.connect(this);
+
+                indicator.animate()
+                    .translationX(0)
+                    .setDuration(200)
+                    .start();
+            });
+
+            tunnel.setOnClickListener(v -> {
+                proxy.setTextColor(inactiveColor);
+                tunnel.setTextColor(activeColor);
+                VibrationManager.vibrate(this, 60);
+
+                VpnManager.disconnect(this);
+                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.VPN_MODE;
+                VpnManager.connect(this);
+
+                indicator.animate()
+                    .translationX(halfWidth)
+                    .setDuration(200)
+                    .start();
+            });
+        });
 
         updateThemeIcon();
 

@@ -13,7 +13,7 @@ public class VpnManager {
         V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
 
         if (state != V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
-            V2rayController.stopV2ray(activity);
+            disconnect(activity);
         }
         else {
             connect(activity);
@@ -24,7 +24,7 @@ public class VpnManager {
         V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
 
         if (state != V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
-            V2rayController.stopV2ray(activity);
+            disconnect(activity);
 
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 connect(activity);
@@ -53,5 +53,9 @@ public class VpnManager {
         catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static void disconnect(Activity activity) {
+        V2rayController.stopV2ray(activity);
     }
 }

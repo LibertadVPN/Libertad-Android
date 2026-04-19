@@ -145,7 +145,7 @@ public class V2rayProxyService extends Service implements V2rayServicesListener 
 
     @Override
     public boolean onProtect(int socket) {
-        return true;
+        return false;
     }
 
     @Override
