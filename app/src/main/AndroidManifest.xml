@@ -22,6 +22,7 @@
                 android:resource="@xml/shortcuts"/>
         </activity>
         <activity android:name=".LoginActivity"></activity>
+        <activity android:name=".updateChecker.UpdateActivity" />
 
         <activity
             android:name=".appShortcuts.AppShortcut"

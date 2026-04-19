@@ -1,5 +1,6 @@
 package org.libertad.vpn;
 
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Base64;
@@ -10,23 +11,26 @@ import android.widget.Toast;
 import android.view.View;
 import android.net.Uri;
 
-import androidx.appcompat.app.AppCompatActivity;
+import org.libertad.vpn.updateChecker.UpdateChecker;
+
 import java.io.IOException;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
 
 public class LoginActivity extends AppCompatActivity {
     private EditText input_token;
     private TextView info_token;
     private Button btn_login;
 
+    private UpdateChecker updateChecker;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        updateChecker = new UpdateChecker(this);
+        updateChecker.check();
+
         setContentView(R.layout.activity_login);
 
         input_token = findViewById(R.id.input_token);

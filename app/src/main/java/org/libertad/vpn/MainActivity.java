@@ -15,9 +15,9 @@ import android.widget.*;
 
 import org.libertad.lib.v2ray.V2rayController;
 import org.libertad.lib.v2ray.utils.V2rayConstants;
-import org.libertad.vpn.manager.ConfigParser;
 import org.libertad.vpn.manager.VpnManager;
 import org.libertad.vpn.theme.ThemeManager;
+import org.libertad.vpn.updateChecker.UpdateChecker;
 
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private List<String> displayNames = new ArrayList<>();
 
     private Handler handler = new Handler(Looper.getMainLooper());
+    private UpdateChecker updateChecker;
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
@@ -48,6 +49,9 @@ public class MainActivity extends AppCompatActivity {
             finish();
             return;
         }
+
+        updateChecker = new UpdateChecker(this);
+        updateChecker.check();
 
         ThemeManager.applyTheme(this);
 
