@@ -1,8 +1,7 @@
 package org.libertad.vpn.manager;
 
 import android.app.Activity;
-import android.os.Handler;
-import android.os.Looper;
+import android.os.*;
 
 import org.libertad.lib.v2ray.V2rayController;
 import org.libertad.lib.v2ray.utils.V2rayConstants;
@@ -11,8 +10,7 @@ import java.util.ArrayList;
 
 public class VpnManager {
     public static void toggle(Activity activity) {
-        V2rayConstants.CONNECTION_STATES state =
-            V2rayController.getConnectionState();
+        V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
 
         if (state != V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
             V2rayController.stopV2ray(activity);

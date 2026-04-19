@@ -16,7 +16,8 @@ import android.widget.*;
 import org.libertad.lib.v2ray.V2rayController;
 import org.libertad.lib.v2ray.utils.V2rayConstants;
 import org.libertad.vpn.manager.VpnManager;
-import org.libertad.vpn.theme.ThemeManager;
+import org.libertad.vpn.manager.VibrationManager;
+import org.libertad.vpn.manager.ThemeManager;
 import org.libertad.vpn.updateChecker.UpdateChecker;
 
 import java.io.IOException;
@@ -70,10 +71,12 @@ public class MainActivity extends AppCompatActivity {
             ThemeManager.toggleTheme(this);
             updateThemeIcon();
             recreate();
+            VibrationManager.vibrate(this, 60);
         });
 
         connection.setOnClickListener(v -> {
             VpnManager.toggle(this);
+            VibrationManager.vibrate(this, 80);
         });
 
         loadConfigsToUI();
@@ -192,6 +195,8 @@ public class MainActivity extends AppCompatActivity {
                 .apply();
 
             adapter.notifyDataSetChanged();
+
+            VibrationManager.vibrate(this, 60);
 
             try {
                 VpnManager.reconnect(this);
