@@ -1,32 +1,50 @@
 package org.libertad.vpn;
 
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Base64;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.view.View;
+import android.net.Uri;
 
-import androidx.appcompat.app.AppCompatActivity;
+import org.libertad.vpn.updateChecker.UpdateChecker;
+
 import java.io.IOException;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
 
 public class LoginActivity extends AppCompatActivity {
     private EditText input_token;
+    private TextView info_token;
     private Button btn_login;
+
+    private UpdateChecker updateChecker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        updateChecker = new UpdateChecker(this);
+        updateChecker.check();
+
         setContentView(R.layout.activity_login);
 
         input_token = findViewById(R.id.input_token);
         btn_login = findViewById(R.id.btn_login);
+        info_token = findViewById(R.id.info_token);
+
+        info_token.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse("tg://resolve?domain=LibertadManager"));
+                startActivity(intent);
+            }
+        });
 
         btn_login.setOnClickListener(v -> {
             String token = input_token.getText().toString().trim();

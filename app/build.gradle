@@ -10,6 +10,7 @@ if (localFile.exists()) {
 }
 
 def subUrl = localProps.getProperty("subUrl")
+def relUrl = localProps.getProperty("relUrl")
 
 android {
     namespace 'org.libertad.vpn'
@@ -19,10 +20,11 @@ android {
         applicationId "org.libertad.vpn"
         minSdk 21
         targetSdk 34
-        versionCode 2
-        versionName "1.0.1"
+        versionCode 3
+        versionName "1.0.2"
         setProperty("archivesBaseName", rootProject.name + "-" + versionName)
         buildConfigField "String", "subUrl", "\"${subUrl}\""
+        buildConfigField "String", "relUrl", "\"${relUrl}\""
     }
 
     buildTypes {

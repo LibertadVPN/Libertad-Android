@@ -11,10 +11,17 @@ import android.content.*;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.*;
+import android.util.TypedValue;
+import android.view.View;
 import android.widget.*;
 
 import org.libertad.lib.v2ray.V2rayController;
+import org.libertad.lib.v2ray.utils.V2rayConfigs;
 import org.libertad.lib.v2ray.utils.V2rayConstants;
+import org.libertad.vpn.manager.VpnManager;
+import org.libertad.vpn.manager.VibrationManager;
+import org.libertad.vpn.manager.ThemeManager;
+import org.libertad.vpn.updateChecker.UpdateChecker;
 
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -24,18 +31,19 @@ import okhttp3.*;
 
 public class MainActivity extends AppCompatActivity {
     private Button connection;
-    private TextView connection_time, txtSelected;
+    private TextView connection_time;
+    private ImageButton btnTheme;
     private BroadcastReceiver v2rayBroadCastReceiver;
     private String selectedConfig;
-    private int selectedPosition = -1;
 
     private ListView listView;
     private List<String> rawConfigs = new ArrayList<>();
     private List<String> displayNames = new ArrayList<>();
 
     private Handler handler = new Handler(Looper.getMainLooper());
+    private UpdateChecker updateChecker;
 
-    @SuppressLint({"SetTextI18n", "UnspecifiedRegisterReceiverFlag"})
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,42 +54,109 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        setContentView(R.layout.activity_main);
+        updateChecker = new UpdateChecker(this);
+        updateChecker.check();
 
-        V2rayController.init(this, R.drawable.ic_launcher, "Libertad VPN");
+        ThemeManager.applyTheme(this);
+
+        setContentView(R.layout.activity_main);
 
         connection = findViewById(R.id.btn_connection);
         connection_time = findViewById(R.id.connection_duration);
-        txtSelected = findViewById(R.id.txt_selected);
         listView = findViewById(R.id.list_servers);
+        btnTheme = findViewById(R.id.btn_theme);
 
-        loadConfigsToUI();
+        V2rayController.init(this, R.drawable.ic_launcher, "Libertad VPN");
 
-        startAutoUpdate();
+        TextView tunnel = findViewById(R.id.tunnel);
+        TextView proxy = findViewById(R.id.proxy);
 
-        connection.setOnClickListener(view -> {
-            V2rayConstants.CONNECTION_STATES state = V2rayController.getConnectionState();
+        View indicator = findViewById(R.id.indicator);
+        View container = (View) indicator.getParent();
 
-            if (state != V2rayConstants.CONNECTION_STATES.DISCONNECTED) {
-                V2rayController.stopV2ray(this);
-                return;
+        TypedValue tv = new TypedValue();
+
+        getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnSurface, tv, true);
+        int activeColor = tv.data;
+
+        getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnPrimary, tv, true);
+        int inactiveColor = tv.data;
+
+        SharedPreferences prefs = getSharedPreferences("selected_mode", MODE_PRIVATE);
+
+        container.post(() -> {
+            int halfWidth = container.getWidth() / 2 - 10;
+
+            boolean isVpn = prefs.getString("mode", "vpn").equals("vpn");
+
+            if (isVpn) {
+                tunnel.setTextColor(activeColor);
+                proxy.setTextColor(inactiveColor);
+                indicator.setTranslationX(0);
+
+                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.VPN_MODE;
+            }
+            else {
+                tunnel.setTextColor(inactiveColor);
+                proxy.setTextColor(activeColor);
+                indicator.setTranslationX(halfWidth);
+
+                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.PROXY_MODE;
             }
 
-            if (selectedConfig == null) {
-                Toast.makeText(this, "Выберите сервер", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            tunnel.setOnClickListener(v -> {
+                tunnel.setTextColor(activeColor);
+                proxy.setTextColor(inactiveColor);
 
-            try {
-                String config = convertToXrayConfig(selectedConfig);
-                V2rayController.startV2ray(this, "Libertad VPN", config, null);
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-                Toast.makeText(this, "Ошибка конфига", Toast.LENGTH_SHORT).show();
-            }
+                VibrationManager.vibrate(this, 60);
+
+                VpnManager.disconnect(this);
+                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.VPN_MODE;
+                VpnManager.connect(this);
+
+                prefs.edit().putString("mode", "vpn").apply();
+
+                indicator.animate()
+                    .translationX(0)
+                    .setDuration(200)
+                    .start();
+            });
+
+            proxy.setOnClickListener(v -> {
+                tunnel.setTextColor(inactiveColor);
+                proxy.setTextColor(activeColor);
+
+                VibrationManager.vibrate(this, 60);
+
+                VpnManager.disconnect(this);
+                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.PROXY_MODE;
+                VpnManager.connect(this);
+
+                prefs.edit().putString("mode", "proxy").apply();
+
+                indicator.animate()
+                    .translationX(halfWidth)
+                    .setDuration(200)
+                    .start();
+            });
         });
 
+        updateThemeIcon();
+
+        btnTheme.setOnClickListener(v -> {
+            ThemeManager.toggleTheme(this);
+            updateThemeIcon();
+            recreate();
+            VibrationManager.vibrate(this, 60);
+        });
+
+        connection.setOnClickListener(v -> {
+            VpnManager.toggle(this);
+            VibrationManager.vibrate(this, 80);
+        });
+
+        loadConfigsToUI();
+        startAutoUpdate();
         updateUI(V2rayController.getConnectionState());
 
         v2rayBroadCastReceiver = new BroadcastReceiver() {
@@ -114,26 +189,39 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
+        IntentFilter filter = new IntentFilter(V2RAY_SERVICE_STATICS_BROADCAST_INTENT);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(
                 v2rayBroadCastReceiver,
-                new IntentFilter(V2RAY_SERVICE_STATICS_BROADCAST_INTENT),
+                filter,
                 Context.RECEIVER_NOT_EXPORTED
             );
         }
         else {
             registerReceiver(
                 v2rayBroadCastReceiver,
-                new IntentFilter(V2RAY_SERVICE_STATICS_BROADCAST_INTENT)
+                filter
             );
         }
     }
 
+    // Auth
     private boolean isAuthorized() {
         return getSharedPreferences("vpn", MODE_PRIVATE)
             .getString("token", null) != null;
     }
 
+    // Theme
+    private void updateThemeIcon() {
+        boolean dark = ThemeManager.isDark(this);
+
+        btnTheme.setImageResource(
+            dark ? R.drawable.ic_moon : R.drawable.ic_sun
+        );
+    }
+
+    // Configs
     private void loadConfigsToUI() {
         rawConfigs.clear();
         displayNames.clear();
@@ -151,31 +239,63 @@ public class MainActivity extends AppCompatActivity {
             displayNames.add(parseName(line));
         }
 
+        String savedConfig = getSharedPreferences("vpn", MODE_PRIVATE)
+            .getString("selected_config", null);
+
+        selectedConfig = savedConfig;
+
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this,
-                R.layout.list_item,
-                R.id.txt_server,
-                displayNames
+            this,
+            R.layout.list_item,
+            R.id.txt_server,
+            displayNames
         );
 
         listView.setAdapter(adapter);
 
+        if (savedConfig != null) {
+            int index = rawConfigs.indexOf(savedConfig);
+
+            if (index != -1) {
+                listView.setItemChecked(index, true);
+                listView.setSelection(index);
+            }
+        }
+
         listView.setOnItemClickListener((parent, view, position, id) -> {
             selectedConfig = rawConfigs.get(position);
-            txtSelected.setText("Выбран: " + displayNames.get(position));
+
+            getSharedPreferences("vpn", MODE_PRIVATE)
+                .edit()
+                .putString("selected_config", selectedConfig)
+                .apply();
+
+            adapter.notifyDataSetChanged();
+
+            VibrationManager.vibrate(this, 60);
+
+            try {
+                VpnManager.reconnect(this);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Ошибка конфига", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
     private String parseName(String link) {
         try {
             if (link.contains("#")) {
-                String name = link.split("#")[1];
-                return URLDecoder.decode(name, "UTF-8");
+                return URLDecoder.decode(link.split("#")[1], "UTF-8");
             }
-        } catch (Exception ignored) {}
+        }
+        catch (Exception ignored) {}
+
         return "Server";
     }
 
+    // Update
     private void startAutoUpdate() {
         handler.postDelayed(new Runnable() {
             @Override
@@ -217,189 +337,32 @@ public class MainActivity extends AppCompatActivity {
 
                     runOnUiThread(() -> loadConfigsToUI());
 
-                } catch (Exception ignored) {}
+                }
+                catch (Exception ignored) {}
             }
         });
     }
 
-    private String convertToXrayConfig(String link) throws Exception {
-        String cleanLink = link.split("#")[0];
-        String raw = cleanLink.replace("vless://", "");
-
-        String[] parts = raw.split("@");
-        String uuid = parts[0];
-
-        String[] hostAndParams = parts[1].split("\\?");
-        String hostPort = hostAndParams[0];
-
-        String[] hp = hostPort.split(":");
-        String address = hp[0];
-        int port = Integer.parseInt(hp[1]);
-
-        // Defaults
-        String network = "tcp";
-        String security = "none";
-
-        String path = "/";
-        String host = "";
-
-        // TLS
-        String sni = "";
-
-        // Reality
-        String fp = "chrome";
-        String pbk = "";
-        String sid = "";
-        String flow = "";
-        String spx = "/";
-
-        if (hostAndParams.length > 1) {
-            String params = hostAndParams[1];
-
-            for (String param : params.split("&")) {
-                String[] kv = param.split("=");
-                if (kv.length != 2) continue;
-
-                String key = kv[0];
-                String value = java.net.URLDecoder.decode(kv[1], "UTF-8");
-
-                switch (key) {
-                    // Default
-                    case "type":
-                        network = value;
-                        break;
-
-                    case "security":
-                        security = value;
-                        break;
-
-                    case "path":
-                        path = value;
-                        break;
-
-                    case "host":
-                        host = value;
-                        break;
-
-                    // TLS / Reality SNI
-                    case "sni":
-                        sni = value;
-                        break;
-
-                    // Reality params
-                    case "fp":
-                        fp = value;
-                        break;
-
-                    case "pbk":
-                        pbk = value;
-                        break;
-
-                    case "sid":
-                        sid = value;
-                        break;
-
-                    case "flow":
-                        flow = value;
-                        break;
-
-                    case "spx":
-                        spx = value;
-                        break;
-                }
-            }
-        }
-
-        // Validation
-
-        if ("reality".equals(security)) {
-            if (pbk.isEmpty() || sid.isEmpty() || sni.isEmpty()) {
-                throw new Exception("Invalid Reality config: missing pbk/sid/sni");
-            }
-        }
-
-        // JSON Build
-
-        StringBuilder json = new StringBuilder();
-
-        json.append("{\n")
-            .append("  \"inbounds\": [{")
-            .append("\"port\":10808,")
-            .append("\"protocol\":\"socks\",")
-            .append("\"settings\":{\"auth\":\"noauth\",\"udp\":true}")
-            .append("}],\n")
-
-            .append("  \"outbounds\": [{\n")
-            .append("    \"protocol\":\"vless\",\n")
-
-            .append("    \"settings\": {\n")
-            .append("      \"vnext\": [{\n")
-            .append("        \"address\": \"").append(address).append("\",\n")
-            .append("        \"port\": ").append(port).append(",\n")
-            .append("        \"users\": [{\n")
-            .append("          \"id\": \"").append(uuid).append("\",\n")
-            .append("          \"encryption\": \"none\"");
-
-        if (!flow.isEmpty()) {
-            json.append(",\n          \"flow\": \"").append(flow).append("\"");
-        }
-
-        json.append("\n        }]\n")
-            .append("      }]\n")
-            .append("    },\n")
-
-            .append("    \"streamSettings\": {\n")
-            .append("      \"network\": \"").append(network).append("\",\n")
-            .append("      \"security\": \"").append(security).append("\"");
-
-        // TLS
-        if ("tls".equals(security)) {
-            json.append(",\n      \"tlsSettings\": {\n")
-                .append("        \"serverName\": \"").append(host).append("\"\n")
-                .append("      }");
-        }
-
-        // Reality
-        if ("reality".equals(security)) {
-            json.append(",\n      \"realitySettings\": {\n")
-                .append("        \"serverName\": \"").append(sni).append("\",\n")
-                .append("        \"publicKey\": \"").append(pbk).append("\",\n")
-                .append("        \"shortId\": \"").append(sid).append("\",\n")
-                .append("        \"fingerprint\": \"").append(fp).append("\",\n")
-                .append("        \"spiderX\": \"").append(spx).append("\"\n")
-                .append("      }");
-        }
-
-        // WS
-        if ("ws".equals(network)) {
-            json.append(",\n      \"wsSettings\": {\n")
-                .append("        \"path\": \"").append(path).append("\",\n")
-                .append("        \"headers\": {\n")
-                .append("          \"Host\": \"").append(host).append("\"\n")
-                .append("        }\n")
-                .append("      }");
-        }
-
-        json.append("\n    }\n")
-            .append("  }]\n")
-            .append("}");
-
-        return json.toString();
-    }
-
+    // UI
     private void updateUI(V2rayConstants.CONNECTION_STATES state) {
-       switch (state) {
-           case CONNECTED:
-               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#22C55E")));
-               break;
-           case DISCONNECTED:
-               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#EF4444")));
-               connection_time.setText("00:00:00");
-               break;
-           case CONNECTING:
-               connection.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#3B82F6")));
-               break;
-       }
+        switch (state) {
+            case CONNECTED:
+                connection.setBackgroundTintList(
+                    ColorStateList.valueOf(Color.parseColor("#22C55E"))
+                );
+                break;
+            case DISCONNECTED:
+                connection.setBackgroundTintList(
+                    ColorStateList.valueOf(Color.parseColor("#EF4444"))
+                );
+                connection_time.setText("00:00:00");
+                break;
+            case CONNECTING:
+                connection.setBackgroundTintList(
+                    ColorStateList.valueOf(Color.parseColor("#3B82F6"))
+                );
+                break;
+        }
     }
 
     @Override
