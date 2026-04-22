@@ -61,15 +61,15 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        V2rayController.init(this, R.drawable.ic_launcher, "Libertad VPN");
-
         connection = findViewById(R.id.btn_connection);
         connection_time = findViewById(R.id.connection_duration);
         listView = findViewById(R.id.list_servers);
         btnTheme = findViewById(R.id.btn_theme);
 
-        TextView proxy = findViewById(R.id.proxy);
+        V2rayController.init(this, R.drawable.ic_launcher, "Libertad VPN");
+
         TextView tunnel = findViewById(R.id.tunnel);
+        TextView proxy = findViewById(R.id.proxy);
 
         View indicator = findViewById(R.id.indicator);
         View container = (View) indicator.getParent();
@@ -82,17 +82,39 @@ public class MainActivity extends AppCompatActivity {
         getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnPrimary, tv, true);
         int inactiveColor = tv.data;
 
+        SharedPreferences prefs = getSharedPreferences("selected_mode", MODE_PRIVATE);
+
         container.post(() -> {
             int halfWidth = container.getWidth() / 2 - 10;
 
-            proxy.setOnClickListener(v -> {
-                proxy.setTextColor(activeColor);
+            boolean isVpn = prefs.getString("mode", "vpn").equals("vpn");
+
+            if (isVpn) {
+                tunnel.setTextColor(activeColor);
+                proxy.setTextColor(inactiveColor);
+                indicator.setTranslationX(0);
+
+                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.VPN_MODE;
+            }
+            else {
                 tunnel.setTextColor(inactiveColor);
+                proxy.setTextColor(activeColor);
+                indicator.setTranslationX(halfWidth);
+
+                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.PROXY_MODE;
+            }
+
+            tunnel.setOnClickListener(v -> {
+                tunnel.setTextColor(activeColor);
+                proxy.setTextColor(inactiveColor);
+
                 VibrationManager.vibrate(this, 60);
 
                 VpnManager.disconnect(this);
-                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.PROXY_MODE;
+                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.VPN_MODE;
                 VpnManager.connect(this);
+
+                prefs.edit().putString("mode", "vpn").apply();
 
                 indicator.animate()
                     .translationX(0)
@@ -100,14 +122,17 @@ public class MainActivity extends AppCompatActivity {
                     .start();
             });
 
-            tunnel.setOnClickListener(v -> {
-                proxy.setTextColor(inactiveColor);
-                tunnel.setTextColor(activeColor);
+            proxy.setOnClickListener(v -> {
+                tunnel.setTextColor(inactiveColor);
+                proxy.setTextColor(activeColor);
+
                 VibrationManager.vibrate(this, 60);
 
                 VpnManager.disconnect(this);
-                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.VPN_MODE;
+                V2rayConfigs.serviceMode = V2rayConstants.SERVICE_MODES.PROXY_MODE;
                 VpnManager.connect(this);
+
+                prefs.edit().putString("mode", "proxy").apply();
 
                 indicator.animate()
                     .translationX(halfWidth)

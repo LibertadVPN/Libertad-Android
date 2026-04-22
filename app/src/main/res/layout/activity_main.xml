@@ -64,27 +64,27 @@
             app:layout_constraintWidth_percent="0.5" />
 
         <TextView
-            android:id="@+id/proxy"
+            android:id="@+id/tunnel"
             android:layout_width="80dp"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="Proxy"
+            android:text="Tunnel"
             android:textColor="?attr/colorOnSurface"
             android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintHorizontal_bias="0.1"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintVertical_bias="0.0" />
 
         <TextView
-            android:id="@+id/tunnel"
+            android:id="@+id/proxy"
             android:layout_width="80dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="12dp"
             android:gravity="center"
-            android:text="Tunnel"
+            android:text="Proxy"
             android:textColor="?attr/colorOnPrimary"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
