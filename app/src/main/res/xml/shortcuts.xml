@@ -8,8 +8,8 @@
 
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="org.libertad.vpn"
-            android:targetClass="org.libertad.vpn.appShortcuts.AppShortcut"
+            android:targetPackage="org.bobrolend.vpn"
+            android:targetClass="org.bobrolend.vpn.appShortcuts.AppShortcut"
             android:data="vpn://toggle"/>
     </shortcut>
 </shortcuts>

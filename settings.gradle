@@ -16,6 +16,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Libertad VPN"
+rootProject.name = "Bobrolend VPN"
 include ':app'
 include ':v2ray'

@@ -13,15 +13,15 @@ def subUrl = localProps.getProperty("subUrl")
 def relUrl = localProps.getProperty("relUrl")
 
 android {
-    namespace 'org.libertad.vpn'
+    namespace 'org.bobrolend.vpn'
     compileSdk 34
 
     defaultConfig {
-        applicationId "org.libertad.vpn"
+        applicationId "org.bobrolend.vpn"
         minSdk 21
         targetSdk 34
-        versionCode 3
-        versionName "1.0.2"
+        versionCode 4
+        versionName "1.0.3"
         setProperty("archivesBaseName", rootProject.name + "-" + versionName)
         buildConfigField "String", "subUrl", "\"${subUrl}\""
         buildConfigField "String", "relUrl", "\"${relUrl}\""
