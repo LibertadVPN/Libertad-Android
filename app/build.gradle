@@ -13,11 +13,11 @@ def subUrl = localProps.getProperty("subUrl")
 def relUrl = localProps.getProperty("relUrl")
 
 android {
-    namespace 'org.libertad.vpn'
+    namespace 'org.bobrolend.vpn'
     compileSdk 34
 
     defaultConfig {
-        applicationId "org.libertad.vpn"
+        applicationId "org.bobrolend.vpn"
         minSdk 21
         targetSdk 34
         versionCode 3

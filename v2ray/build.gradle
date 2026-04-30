@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace 'org.libertad.lib.v2ray'
+    namespace 'org.bobrolend.lib.v2ray'
     compileSdk 34
 
     defaultConfig {

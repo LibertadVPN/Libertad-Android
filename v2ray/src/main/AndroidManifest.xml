@@ -17,10 +17,10 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="m">
         <service
-            android:name="org.libertad.lib.v2ray.services.V2rayVPNService"
+            android:name="org.bobrolend.lib.v2ray.services.V2rayVPNService"
             android:exported="false"
             android:foregroundServiceType="specialUse"
-            android:label="Libertad VPN"
+            android:label="Bobrolend VPN"
             android:permission="android.permission.BIND_VPN_SERVICE"
             android:process=":RunSoLibV2RayDaemon">
             <intent-filter>
@@ -36,10 +36,10 @@
 
 
         <service
-            android:name="org.libertad.lib.v2ray.services.V2rayProxyService"
+            android:name="org.bobrolend.lib.v2ray.services.V2rayProxyService"
             android:exported="false"
             android:foregroundServiceType="specialUse"
-            android:label="Libertad VPN"
+            android:label="Bobrolend VPN"
             android:permission="android.permission.BIND_VPN_SERVICE"
             android:process=":RunSoLibV2RayDaemon">
             <property
